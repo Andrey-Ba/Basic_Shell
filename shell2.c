@@ -139,7 +139,11 @@ int main() {
                 dup(fd); 
                 close(fd); 
             }
-            execvp(argv[0], argv);
+            // Execute command and check if it exists
+            if(execvp(argv[0], argv) == -1){
+                printf("command %s not found\n", argv[0]);
+                exit(0);
+            }
         }
         /* parent continues here */
         if (amper == 0){
