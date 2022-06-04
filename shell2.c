@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+char name[1024];
+
 
 void intHandler(int n) {
     printf("\nYou typed Control-C!\n");
@@ -27,12 +29,12 @@ void argvtocommand(char* argv[10], char command[1024]){
     }
 }
 
-
 int main() {
-    // if(signal(SIGINT, intHandler) == SIG_ERR){
-    //     printf("SIGINT ERROR");
-    // }
-    char command[1024], prev_command[1024], name[1024];
+    strcpy(name, "hello");
+    if(signal(SIGINT, intHandler) == SIG_ERR){
+        printf("SIGINT ERROR");
+    }
+    char command[1024], prev_command[1024];
     char *token;
     char *outfile;
     char stat[3];
@@ -40,7 +42,6 @@ int main() {
     char *argv[10];
     status = 1;
     new_command = 1;
-    strcpy(name, "hello");
     while (1)
     {
         if(new_command){
@@ -113,6 +114,19 @@ int main() {
                 }
             }
             printf("\n");
+            argvtocommand(argv, prev_command);
+            continue;
+        }
+
+        // cd
+        if(! strcmp(argv[0], "cd"))
+        {
+            if(!argv[1]){
+                chdir(getenv("HOME"));
+            }
+            else if(chdir(argv[1]) == -1){
+                printf("No such file or directory\n");
+            }
             argvtocommand(argv, prev_command);
             continue;
         }
