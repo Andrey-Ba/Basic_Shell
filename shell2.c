@@ -10,7 +10,6 @@
 
 char name[1024];
 
-
 void intHandler(int n) {
     printf("\nYou typed Control-C!\n");
 }
@@ -29,6 +28,16 @@ void argvtocommand(char* argv[10], char command[1024]){
     }
 }
 
+int charInStr(char* str, char c, int size){
+    int count = 0;
+    for(int i = 0; str[i] && i < size; i++){
+        if(str[i] == c){
+            count++;
+        }
+    }
+    return count;
+}
+
 int main() {
     strcpy(name, "hello");
     if(signal(SIGINT, intHandler) == SIG_ERR){
@@ -38,10 +47,13 @@ int main() {
     char *token;
     char *outfile;
     char stat[3];
-    int i, j, fd, amper, redirect, retid, status, new_command;
+    int i, j, fd, amper, redirect, retid, status, new_command, pipes_num, pi, pj;
     char *argv[10];
+    char ***pargv;
     status = 1;
     new_command = 1;
+    pipes_num = 0;
+    int fildes[1024][2];
     while (1)
     {
         if(new_command){
@@ -53,6 +65,14 @@ int main() {
             new_command = 1;
         }
 
+        pipes_num = charInStr(command, '|', 1024);
+        if(pipes_num > 0){
+            pargv = (char***)(malloc(pipes_num * sizeof(char***)));
+            for(int r = 0; r < pipes_num; r++){
+                pargv[r] = (char**)(malloc(10 * sizeof(char*)));
+            }
+        }
+        
         /* parse command line */
         i = 0;
         token = strtok (command," ");
@@ -61,8 +81,29 @@ int main() {
             argv[i] = token;
             token = strtok (NULL, " ");
             i++;
+            if (token && ! strcmp(token, "|")) {
+                break;
+            }
         }
         argv[i] = NULL;
+
+        if(pipes_num > 0){
+            token = strtok (NULL, " ");
+            pi = 0;
+            pj = 0;
+            while (token != NULL)
+            {
+                pargv[pi][pj] = token;
+                token = strtok (NULL, " ");
+                pj++;
+                if(token && ! strcmp(token, "|")){
+                    token = strtok (NULL, " ");
+                    pargv[pi][pj] = NULL;
+                    pi++;
+                    pj = 0;
+                }
+            }
+        }
 
         /* Is command empty */
         if (argv[0] == NULL)
@@ -153,8 +194,37 @@ int main() {
                 dup(fd); 
                 close(fd); 
             }
-            // Execute command and check if it exists
-            if(execvp(argv[0], argv) == -1){
+            if(pipes_num > 0){
+                for(int r = 0; r < pipes_num; r++){
+                    pipe(fildes[r]);
+                    if(fork() == 0){
+                        close(STDOUT_FILENO);
+                        dup(fildes[r][1]);
+                        close(fildes[r][1]);
+                        close(fildes[r][0]);
+                        if(r == 0){
+                            if(execvp(argv[0], argv) == -1)
+                                printf("command %s not found\n", pargv[r][0]);
+                                exit(0);
+                        }
+                        else{ 
+                            if(execvp(pargv[r - 1][0], pargv[r - 1]) == -1){
+                                printf("command %s not found\n", pargv[r - 1][0]);
+                                exit(0);
+                            }
+                        }
+                    }
+                    close(STDIN_FILENO);
+                    dup(fildes[r][0]);
+                    close(fildes[r][0]);
+                    close(fildes[r][1]);
+                    if(execvp(pargv[r][0], pargv[r]) == -1){
+                        printf("command %s not found\n", pargv[r][0]);
+                        exit(0);
+                    }
+                }
+            }
+            else if(execvp(argv[0], argv) == -1){
                 printf("command %s not found\n", argv[0]);
                 exit(0);
             }
