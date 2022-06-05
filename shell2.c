@@ -14,8 +14,7 @@ void intHandler(int n) {
     printf("\nYou typed Control-C!\n");
 }
 
-void argvtocommand(char* argv[10], char command[1024]){
-    command[0] = '\0';
+int argvtocommand(char* argv[10], char command[1024]){
     int i = 0;
     while (argv[i])
     {
@@ -26,6 +25,7 @@ void argvtocommand(char* argv[10], char command[1024]){
             strcat(command, " ");
         }
     }
+    return i;
 }
 
 int charInStr(char* str, char c, int size){
@@ -47,7 +47,7 @@ int main() {
     char *token;
     char *outfile;
     char stat[3];
-    int i, j, fd, amper, redirect, retid, status, new_command, pipes_num, pi, pj;
+    int i, j, fd, amper, redirect, retid, status, new_command, pipes_num, pi, pj, len;
     char *argv[10];
     char ***pargv;
     status = 1;
@@ -218,7 +218,7 @@ int main() {
                     dup(fildes[r][0]);
                     close(fildes[r][0]);
                     close(fildes[r][1]);
-                    if(execvp(pargv[r][0], pargv[r]) == -1){
+                    if(r == pipes_num - 1 && execvp(pargv[r][0], pargv[r]) == -1){
                         printf("command %s not found\n", pargv[r][0]);
                         exit(0);
                     }
@@ -233,6 +233,16 @@ int main() {
         if (amper == 0){
             retid = wait(&status);
         }
+        prev_command[0] = '\0';
         argvtocommand(argv, prev_command);
+        if(pipes_num > 0){
+            for(int r = 0; r < pipes_num; r++){
+                strcat(prev_command, " | ");
+                argvtocommand(pargv[r], prev_command);
+                free(pargv[r]);
+            }
+            strcat(prev_command, "\0");
+            free(pargv);
+        }
     }
 }
