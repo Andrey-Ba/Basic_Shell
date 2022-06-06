@@ -19,7 +19,6 @@ int main()
         printf("hello: ");
         fgets(command, 1024, stdin);
         command[strlen(command) - 1] = '\0'; // replace \n with \0
-
         /* parse command line */
         i = 0;
         token = strtok(command, " ");
@@ -55,3 +54,11 @@ int main()
             wait(NULL);
     }
 }
+
+
+
+
+
+
+
+
