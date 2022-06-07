@@ -1,5 +1,0 @@
-make --dry-run --always-make --keep-going --print-directory
-make: Entering directory '/workspaces/AP_Ex3'
-gcc -o myshell shell2.c
-make: Leaving directory '/workspaces/AP_Ex3'
- 

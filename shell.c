@@ -28,6 +28,37 @@ int charInStr(char *str, char c, int size)
     return count;
 }
 
+void addVar(char**** vars, int* num_of_vars, char* name_of_var, char* value_of_var){
+    if(!(*num_of_vars)){
+        (*vars) = (char***)(malloc(sizeof(char**)));
+        (*vars)[0] = (char**)(malloc(sizeof(2*sizeof(char*))));
+        (*vars)[0][0] = (char*)(malloc(strlen(name_of_var) + 1));
+        strcpy((*vars)[0][0], name_of_var);
+        (*vars)[0][1] = (char*)(malloc(strlen(value_of_var) + 1));
+        strcpy((*vars)[0][1], value_of_var);
+        (*num_of_vars)++;
+    }
+    else{
+        for(int r = (*num_of_vars) - 1; r >= 0; r--){
+            if(! strcmp((*vars)[r][0], name_of_var)){
+                free((*vars)[r][1]);
+                (*vars)[r][1] = (char*)(malloc(strlen(value_of_var + 1)));
+                strcpy((*vars)[r][1], value_of_var);
+                return;
+            }
+            else{
+                    (*num_of_vars)++;
+                    (*vars) = (char***)(realloc((*vars), (*num_of_vars) * sizeof(char**)));
+                    (*vars)[(*num_of_vars) - 1] = (char**)(malloc(sizeof(2*sizeof(char*))));
+                    (*vars)[(*num_of_vars) - 1][0] = (char*)(malloc(strlen(name_of_var) + 1));
+                    strcpy((*vars)[(*num_of_vars) - 1][0], name_of_var);
+                    (*vars)[(*num_of_vars) - 1][1] = (char*)(malloc(strlen(value_of_var) + 1));
+                    strcpy((*vars)[(*num_of_vars) - 1][1], value_of_var);
+                }
+        }
+    }
+}
+
 int main()
 {
     strcpy(name, "hello");
@@ -35,7 +66,7 @@ int main()
     {
         printf("SIGINT ERROR");
     }
-    char command[1024], prev_command[1024];
+    char command[1024], prev_command[1024], read_var_name[1024], read_var_val[1024];
     char *token;
     char *outfile;
     char stat[3];
@@ -45,10 +76,20 @@ int main()
     status = 1;
     pipes_num = 0;
     int fildes[1024][2];
+
+    char*** vars;
+    int num_of_vars = 0;
+    read_var_name[0] = '$';
+
     while (1)
     {
         printf("%s: ", name);
-        fgets(command, 1024, stdin);
+
+        if(fgets(command, 1024, stdin) == NULL){
+            clearerr(stdin);
+            printf("\n");
+            continue;
+        }
         command[strlen(command) - 1] = '\0';
 
         // !!
@@ -155,6 +196,14 @@ int main()
                 {
                     printf("%d", status);
                 }
+                else if(argv[j][0] == '$' && argv[j][1] != '\0'){
+                    for(int r = 0; r <num_of_vars; r++){
+                        if(!strcmp(vars[r][0], argv[j])){
+                            printf("%s", vars[r][1]);
+                            break;
+                        }
+                    }
+                }
                 else
                 {
                     printf("%s", argv[j]);
@@ -186,7 +235,33 @@ int main()
         // quit
         if (!strcmp(argv[0], "quit"))
         {
+            for(int r = 0; r < num_of_vars; r++){
+                free(vars[r][0]);
+                free(vars[r][1]);
+                free(vars[r]);
+            }
+            free(vars);
             exit(0);
+        }
+
+        // Variables
+        if (i > 2 && argv[0][0] == '$' && argv[0][1] && strcmp(argv[0], "$?") && !strcmp(argv[1], "=")){
+            addVar(&vars, &num_of_vars, argv[0], argv[2]);
+            continue;
+        }
+
+        // Read
+        if(i > 1 && !strcmp(argv[0], "read") && strcmp(argv[1], "?")){
+            if(fgets(read_var_val, 1024, stdin) == NULL){
+                clearerr(stdin);
+                printf("\n");
+                continue;
+            }
+            strcat(read_var_name, argv[1]);
+            read_var_val[strlen(read_var_val) - 1] = '\0';
+            addVar(&vars, &num_of_vars, read_var_name, read_var_val);
+            read_var_name[1] = '\0';
+            continue;
         }
 
         /* for commands not part of the shell command language */
@@ -258,4 +333,11 @@ int main()
             free(pargv);
         }
     }
+    for(int r = 0; r < num_of_vars; r++){
+        free(vars[r][0]);
+        free(vars[r][1]);
+        free(vars[r]);
+    }
+    free(vars);
+    return 0;
 }
