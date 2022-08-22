@@ -10,7 +10,7 @@
 * `>` for redirection output to a file
 * `&` for background execution
 * `!!` for executing the last command
-* `Ctrl-C` event handler prevents the shell from exiting
+* `Ctrl-C` signal handler preventing the shell from exiting
 
 ## Installation and Usage
 * Clone the repository
