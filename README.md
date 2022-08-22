@@ -5,7 +5,7 @@
 * Variables using `$name = value` 
 * `read` command
 * `|` for piping and chained piping
-* `cd`, `echo` command
+* `cd`, `echo` commands
 * `quit` to exit
 * `>` for redirection output to a file
 * `&` for background execution
